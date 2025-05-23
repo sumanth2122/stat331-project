@@ -1,0 +1,88 @@
+---
+title: "GDP per Capita vs Fertility Rate"
+author: "Sumanth, Amar, Davis, James"
+format: html
+editor: visual
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Introduction
+
+In this project, we will explore the relationship between **Total Fertility Rate** and **GDP per Capita** using data from Gapminder. These variables were chosen because we believe economic development influences population growth.
+
+### Variables
+
+-   **Total Fertility Rate (TFR):** Average number of children born to a woman over her lifetime.
+    -   Source: [Gapminder](https://www.gapminder.org/data/), drawn from the World Bank data.
+-   **GDP per Capita:** The economic output per person, adjusted for inflation and population. In 2017 dollars. 
+    -   Source: [Gapminder](https://www.gapminder.org/data/), drawn from the World Bank data.
+
+## Hypothesis
+
+> As GDP per capita increases, Total Fertility Rate increases.
+
+From our research, we found many sources that imply that economically developed nations tend to have greater access to education, better access to reproductive healthcare and contraception, and an increased cost of raising children. We hypothesized that these factors would all lead to a decrease in the Total Fertility Rate.
+
+According to the Our World in Data  [Fertility vs Population Rate (2019)](https://ourworldindata.org/grapher/children-per-woman-fertility-rate-vs-level-of-prosperity), this trend is observed globally as fertility transitions follow a downwards trend with gdp.
+
+## Data Cleaning and Preparation
+
+```{r}
+library(tidyverse)
+library(knitr)
+```
+
+
+### Load data files
+
+```{r}
+tfr <- read_csv("sp_dyn_tfrt_in.csv") 
+gdp <- read_csv("gdp_pcap.csv")
+```
+
+### Getting rid of k
+The GDP data has some values with a "k" suffix, which indicates thousands. We need to convert these values to numeric.
+
+```{r}
+gdp_clean <- gdp |>
+  mutate(across(-country, ~ case_when(
+    str_detect(., "k") ~ as.numeric(str_remove(., "k")) * 1000,
+    TRUE ~ as.numeric(.)
+  )))
+```
+
+
+
+### Pivoting to long format
+With this, we can easily join the two datasets on country and year.
+
+```{r}
+tfr_long <- tfr |>
+  pivot_longer(cols = -country, names_to = "year", values_to = "tfr") |>
+  mutate(year = as.integer(year))
+
+gdp_long <- gdp_clean |>
+  pivot_longer(cols = -country, names_to = "year", values_to = "gdp_per_capita") |>
+  mutate(year = as.integer(year))
+
+
+
+```
+
+
+### Join the datasets on country and year
+
+This will be the dataset we will work with for the rest of the project.
+```{r}
+data_clean <- inner_join(tfr_long, gdp_long, by = c("country", "year")) |>
+  filter(!is.na(tfr), !is.na(gdp_per_capita))
+
+
+data_clean |>
+  head() |>
+  kable()
+```
+
