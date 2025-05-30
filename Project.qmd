@@ -17,7 +17,7 @@ In this project, we will explore the relationship between **Total Fertility Rate
 
 -   **Total Fertility Rate (TFR):** Average number of children born to a woman over her lifetime.
     -   Source: [Gapminder](https://www.gapminder.org/data/), drawn from the World Bank data.
--   **GDP per Capita:** The economic output per person, adjusted for inflation and population. In 2017 dollars. 
+-   **GDP per Capita:** The economic output per person, adjusted for inflation and population. In 2017 dollars.
     -   Source: [Gapminder](https://www.gapminder.org/data/), drawn from the World Bank data.
 
 ## Hypothesis
@@ -26,15 +26,18 @@ In this project, we will explore the relationship between **Total Fertility Rate
 
 From our research, we found many sources that imply that economically developed nations tend to have greater access to education, better access to reproductive healthcare and contraception, and an increased cost of raising children. We hypothesized that these factors would all lead to a decrease in the Total Fertility Rate.
 
-According to the Our World in Data  [Fertility vs Population Rate (2019)](https://ourworldindata.org/grapher/children-per-woman-fertility-rate-vs-level-of-prosperity), this trend is observed globally as fertility transitions follow a downwards trend with gdp.
+According to the Our World in Data [Fertility vs Population Rate (2019)](https://ourworldindata.org/grapher/children-per-woman-fertility-rate-vs-level-of-prosperity), this trend is observed globally as fertility transitions follow a downwards trend with gdp.
 
 ## Data Cleaning and Preparation
 
 ```{r}
 library(tidyverse)
 library(knitr)
+library(ggplot2)
+library(gganimate)
+library(transformr)
+library(gifski)
 ```
-
 
 ### Load data files
 
@@ -44,6 +47,7 @@ gdp <- read_csv("gdp_pcap.csv")
 ```
 
 ### Getting rid of k
+
 The GDP data has some values with a "k" suffix, which indicates thousands. We need to convert these values to numeric.
 
 ```{r}
@@ -54,9 +58,8 @@ gdp_clean <- gdp |>
   )))
 ```
 
-
-
 ### Pivoting to long format
+
 With this, we can easily join the two datasets on country and year.
 
 ```{r}
@@ -72,10 +75,10 @@ gdp_long <- gdp_clean |>
 
 ```
 
-
 ### Join the datasets on country and year
 
 This will be the dataset we will work with for the rest of the project.
+
 ```{r}
 data_clean <- inner_join(tfr_long, gdp_long, by = c("country", "year")) |>
   filter(!is.na(tfr), !is.na(gdp_per_capita))
@@ -86,3 +89,49 @@ data_clean |>
   kable()
 ```
 
+### Data Visualizations 
+
+This is the relationship between Average Fertility Rate vs GDP per Capita by Country.
+
+```{r}
+agg_data <- data_clean |>
+  group_by(country) |>
+  summarise(
+    avg_tfr = mean(tfr, na.rm = TRUE),
+    avg_gdp = mean(gdp_per_capita, na.rm = TRUE)
+  )
+
+ggplot(agg_data, aes(x = avg_gdp, y = avg_tfr)) +
+  geom_point(color = "steelblue", alpha = 0.7, size = 2) +
+  scale_x_continuous(
+    limits = c(0, 100000),
+    breaks = seq(0, 100000, by = 20000),
+    labels = function(x) format(x, big.mark = ",", scientific = FALSE)
+  ) +
+  labs(
+    title = "Average Total Fertility Rate vs. GDP per Capita",
+    subtitle = "Aggregated by Country (2017 USD)",
+    x = "Average GDP per Capita (2017 USD)",
+    y = "Average Total Fertility Rate"
+  )
+```
+
+This is the relationship between Average Fertility Rate vs GDP per Capita by Country over time using an animated plot.
+
+```{r}
+ggplot(data_clean, aes(x = gdp_per_capita, y = tfr)) +
+  geom_point(aes(group = country), alpha = 0.6, size = 1.5, color = "steelblue") +
+  scale_x_continuous(
+    limits = c(0, 100000),
+    breaks = seq(0, 100000, by = 10000),
+    labels = scales::comma
+  ) +
+  labs(
+    title = "Fertility vs GDP per Capita Over Time: {closest_state}",
+    x = "GDP per Capita (2017 USD)",
+    y = "Total Fertility Rate"
+  ) +
+  theme_light(base_size = 12) +
+  transition_states(year, transition_length = 1, state_length = 1) +
+  ease_aes('linear')
+```
