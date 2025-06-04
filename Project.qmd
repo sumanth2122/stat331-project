@@ -1,7 +1,9 @@
 ---
 title: "GDP per Capita vs Fertility Rate"
 author: "Sumanth, Amar, Davis, James"
-format: html
+format: 
+  html:
+    embed-resources: true
 editor: visual
 execute:
   echo: true
@@ -15,18 +17,18 @@ In this project, we will explore the relationship between **Total Fertility Rate
 
 ### Variables
 
--   **Total Fertility Rate (TFR):** Average number of children born to a woman over her lifetime.
-    -   Source: [Gapminder](https://www.gapminder.org/data/), drawn from the World Bank data.
--   **GDP per Capita:** The economic output per person, adjusted for inflation and population. In 2017 dollars.
-    -   Source: [Gapminder](https://www.gapminder.org/data/), drawn from the World Bank data.
+- **Total Fertility Rate (TFR):** Average number of children born to a woman over her lifetime.  
+  - Source: [Gapminder](https://www.gapminder.org/data/), drawn from the World Bank data.
+- **GDP per Capita:** The economic output per person, adjusted for inflation and population. In 2017 dollars.  
+  - Source: [Gapminder](https://www.gapminder.org/data/), drawn from the World Bank data.
 
 ## Hypothesis
 
-> As GDP per capita increases, Total Fertility Rate increases.
+> As GDP per capita increases, Total Fertility Rate decreases.
 
 From our research, we found many sources that imply that economically developed nations tend to have greater access to education, better access to reproductive healthcare and contraception, and an increased cost of raising children. We hypothesized that these factors would all lead to a decrease in the Total Fertility Rate.
 
-According to the Our World in Data [Fertility vs Population Rate (2019)](https://ourworldindata.org/grapher/children-per-woman-fertility-rate-vs-level-of-prosperity), this trend is observed globally as fertility transitions follow a downwards trend with gdp.
+According to the Our World in Data [Fertility vs Population Rate (2019)](https://ourworldindata.org/grapher/children-per-woman-fertility-rate-vs-level-of-prosperity), this trend is observed globally as fertility transitions follow a downwards trend with GDP.
 
 ## Data Cleaning and Preparation
 
@@ -40,16 +42,14 @@ library(gifski)
 library(kableExtra)
 ```
 
-### Load data files
+### Load Data Files
 
 ```{r}
 tfr <- read_csv("sp_dyn_tfrt_in.csv") 
 gdp <- read_csv("gdp_pcap.csv")
 ```
 
-### Getting rid of k
-
-The GDP data has some values with a "k" suffix, which indicates thousands. We need to convert these values to numeric.
+### Clean GDP Values with "k"
 
 ```{r}
 gdp_clean <- gdp |>
@@ -59,9 +59,7 @@ gdp_clean <- gdp |>
   )))
 ```
 
-### Pivoting to long format
-
-With this, we can easily join the two datasets on country and year.
+### Pivot to Long Format
 
 ```{r}
 tfr_long <- tfr |>
@@ -71,28 +69,23 @@ tfr_long <- tfr |>
 gdp_long <- gdp_clean |>
   pivot_longer(cols = -country, names_to = "year", values_to = "gdp_per_capita") |>
   mutate(year = as.integer(year))
-
-
-
 ```
 
-### Join the datasets on country and year
-
-This will be the dataset we will work with for the rest of the project.
+### Join Datasets on Country and Year
 
 ```{r}
 data_clean <- inner_join(tfr_long, gdp_long, by = c("country", "year")) |>
   filter(!is.na(tfr), !is.na(gdp_per_capita))
-
 
 data_clean |>
   head() |>
   kable()
 ```
 
-### Data Visualizations 
+## Data Visualizations
 
 This is the relationship between Average Fertility Rate vs GDP per Capita by Country.
+
 ```{r}
 agg_data <- data_clean |>
   group_by(country) |>
@@ -112,13 +105,6 @@ ggplot(agg_data, aes(x = avg_gdp, y = avg_tfr)) +
 ```
 
 ```{r}
-agg_data <- data_clean |>
-  group_by(country) |>
-  summarise(
-    avg_tfr = mean(tfr, na.rm = TRUE),
-    avg_gdp = mean(gdp_per_capita, na.rm = TRUE)
-  )
-
 ggplot(agg_data, aes(x = log(avg_gdp), y = log(avg_tfr))) +
   geom_point(color = "steelblue", alpha = 0.7, size = 2) +
   labs(
@@ -129,7 +115,7 @@ ggplot(agg_data, aes(x = log(avg_gdp), y = log(avg_tfr))) +
   )
 ```
 
-This is the relationship between Average Fertility Rate vs GDP per Capita by Country over time using an animated plot.
+This is the relationship over time using an animated plot.
 
 ```{r}
 ggplot(data_clean, aes(x = log(gdp_per_capita), y = log(tfr))) +
@@ -144,51 +130,100 @@ ggplot(data_clean, aes(x = log(gdp_per_capita), y = log(tfr))) +
   ease_aes('linear')
 ```
 
+## Linear Regression
 
-2.2 Linear Regression
 ```{r}
 ln_model <- lm(log(avg_tfr) ~ log(avg_gdp), data = agg_data)
+
 broom::tidy(ln_model) |>
   kable()
-
 ```
-Intercept: If the average gdp per capita is 1 dollar in 2017 dollars, then the average fertility rate 54 children which is not meaningful.
 
-Slope: A 2-fold increase in average gdp per capita decreases the predicted average value of average fertility rate by a factor of 0.805.
+The intercept suggests that if the average GDP per capita were \$1, the predicted fertility rate would be approximately 54 children per woman. This is not meaningful within a real-world context but useful for model interpretation.
 
+The slope of the regression model indicates that for every doubling (2-fold increase) in average GDP per capita, the predicted average total fertility rate decreases by a factor of 0.805. This suggests a negative relationship between economic prosperity and fertility: as countries become wealthier on average, they tend to have lower fertility rates. This aligns with our hypothesis.
 
-2.3 Model fit
-
-# Table
+## Model Fit
 
 ```{r}
 augmented_data <- broom::augment(ln_model)
 
 tibble(
-    variance = var(ln_model$model[[1]]),
-    variance_fitted = var(fitted(ln_model)),
-    variance_res = summary(ln_model)$sigma^2,
-    rsquared = summary(ln_model)$r.squared 
+  variance = var(ln_model$model[[1]]),
+  variance_fitted = var(fitted(ln_model)),
+  variance_res = summary(ln_model)$sigma^2,
+  rsquared = summary(ln_model)$r.squared 
+) |>
+  summarize(
+    Variance = variance,
+    `Fitted Values` = variance_fitted,
+    `Residual Variance` = variance_res,
+    `$R^2$` = rsquared
   ) |>
-  summarize(Variance = variance,
-            'Fitted Values' = variance_fitted,
-            'Residual Variance' = variance_res,
-            '$R^2$' = rsquared)|>
-  kable(booktabs = TRUE, caption = "Model Variance Summary")|>
+  kable(booktabs = TRUE, caption = "Model Variance Summary") |>
   kable_styling(latex_options = "striped")
-
-
-
 ```
 
-Discuss the proportion of the variability in the response values that was accounted for by your regression model. What does this suggest about the “quality” of your model?
+With an $R^2$ value of 0.5879, our model explains 58.8% of the variance in average total fertility rate across countries. This indicates that average GDP per capita is a decent predictor for explaining average total fertility rate. While 58% of the data is explained by our model, around 41% is still left unexplained. To increase our $R^2$, we can possibly add more predictors to our model or choose different predictors that explain more variation than average GDP per capita.
 
+## Cross Validation
 
-With an $R^2$ value of .5879, our model explains 58.8% of the variance in average total fertility rate across countries. This indicates that average GDP per capita is a decent predictor for explaining average total fertility rate. While 58% of the data is explained by our model, around 41% is still left unexplained. To increase our $R^2$, we can possibly add more predictors to our model or choose different predictors that explain more variation than average GDP per capita.
+### 10-Fold Cross Validation
 
+```{r}
+library(purrr)
 
+set.seed(42)
 
+k <- 10
 
+agg_data_folds <- agg_data |>
+  mutate(fold = sample(rep(1:k, length.out = n())))
+
+get_fold_r2 <- function(fold_number, data) {
+  train_data <- filter(data, fold != fold_number)
+  test_data <- filter(data, fold == fold_number)
+  
+  model <- lm(log(avg_tfr) ~ log(avg_gdp), data = train_data)
+  preds <- predict(model, newdata = test_data)
+  
+  r2 <- var(preds, na.rm = TRUE) / var(log(test_data$avg_tfr), na.rm = TRUE)
+  return(r2)
+}
+
+r2_values <- map_dbl(1:k, ~get_fold_r2(.x, agg_data_folds))
+
+r2_df <- tibble(fold = 1:k, r2 = r2_values)
+
+r2_df |>
+  kable(booktabs = TRUE, caption = "R² Values from 10-Fold Cross Validation") |>
+  kable_styling(full_width = FALSE, bootstrap_options = "striped")
+```
+
+### Plotting the R² Distribution
+
+```{r}
+ggplot(r2_df, aes(x = r2)) +
+  geom_histogram(
+    binwidth = 0.05, 
+    fill = "steelblue", 
+    color = "black", 
+    alpha = 0.8,
+    boundary = 0, 
+    closed = "left"
+  ) +
+  labs(
+    title = "Distribution of R² Values from 10-Fold Cross Validation",
+    subtitle = paste0("Mean R² = ", round(mean(r2_df$r2), 3)),
+    x = expression(R^2~"Value"),
+    y = "Number of Folds"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+The results of the 10-fold cross-validation show that the model's $R^2$ values range from approximately 0.369 to 0.910, with an average $R^2$ of about 0.594. This is consistent with the $R^2$ from the full model (0.588), suggesting that the model generalizes well to unseen data and is not overfitting. There is some variation in $R^2$ across folds—likely due to the small sample size and potential variability in GDP and fertility values between countries. Overall, this goes to show that GDP per capita is a decent predictor of average total fertility rate, but there is still room for improvement in the model.
+
+## Conclusion
 
 
 
