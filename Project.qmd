@@ -81,10 +81,6 @@ gdp_long <- gdp_clean |>
 ```{r join_datasets_country_year}
 data_clean <- inner_join(tfr_long, gdp_long, by = c("country", "year")) |>
   filter(!is.na(tfr), !is.na(gdp_per_capita))
-
-data_clean |>
-  head() |>
-  kable()
 ```
 
 ## Data Visualizations
@@ -237,3 +233,15 @@ The results of the 10-fold cross-validation show that the model's $R^2$ values r
 This analysis provides compelling evidence for a negative association between economic prosperity and fertility rates. As GDP per capita increases, fertility rates tend to decline. The regression results are consistent across visualizations and validated by cross-validation, suggesting that GDP per capita is a meaningful, though not exclusive, predictor of fertility behavior across nations. These findings support existing global demographic theories.
 
 Future research could explore additional factors such as education levels, healthcare access, or cultural variables to improve explanation. 
+
+## References
+-   **Total Fertility Rate (TFR):**.
+    -   Source: [Gapminder](https://www.gapminder.org/data/), drawn from the World Bank data.
+-   **GDP per Capita:** .
+    -   Source: [Gapminder](https://www.gapminder.org/data/), drawn from the World Bank data.
+- **Fertility vs Population Rate (2019):**
+    - Our World in Data [Fertility vs Population Rate (2019)](https://ourworldindata.org/grapher/children-per-woman-fertility-rate-vs-level-of-prosperity)
+
+All code for reproducibility can be found at 
+[Stat 331 Project](https://github.com/sumanth2122/stat331-project.git)
+    
