@@ -1,3 +1,4 @@
+
 ---
 title: "GDP per Capita vs Fertility Rate"
 author: "Sumanth, Amar, Davis, James"
@@ -40,9 +41,9 @@ According to the Our World in Data [Fertility vs Population Rate (2019)](https:/
 
 ## Data Cleaning and Preparation
 
-We began by standardizing the GDP figures, which included some values reported in thousands (denoted with a "k"). These values were converted to numerical form by multiplying them by 1,000. After aligning the year columns and ensuring both datasets were in long format, we joined them based on country and year. Rows with missing values for either GDP or fertility rate were removed. The result was a clean dataset containing matched pairs of GDP per capita and fertility rates across countries and years.
+We began by standardizing the GDP, which included some values reported in thousands (denoted with a "k"). These values were converted to numerical form by multiplying them by 1,000 and dropping the "k". After aligning the year columns and ensuring both datasets were in long format, we joined them based on country and year. Rows with missing values for either GDP or fertility rate were removed. The result was a clean dataset containing matched pairs of GDP per capita and fertility rates across countries and years.
 
-The unit of observation in our analysis is a country-year pair. In some sections, such as model fitting, we aggregate this data at the country level by calculating the average fertility rate and average GDP per capita for each country.
+The unit of observation in our analysis is a country-year pair. We aggregated this data at the country level by calculating the average fertility rate and average GDP per capita for each country.
 
 ```{r}
 library(tidyverse)
@@ -54,14 +55,10 @@ library(gifski)
 library(kableExtra)
 ```
 
-### 
-
 ```{r Load Data Files}
 tfr <- read_csv("sp_dyn_tfrt_in.csv") 
 gdp <- read_csv("gdp_pcap.csv")
 ```
-
-### 
 
 ```{r clean_gdp_values}
 gdp_clean <- gdp |>
@@ -70,8 +67,6 @@ gdp_clean <- gdp |>
     TRUE ~ as.numeric(.)
   )))
 ```
-
-### 
 
 ```{r pivot_to_long_format}
 tfr_long <- tfr |>
@@ -82,8 +77,6 @@ gdp_long <- gdp_clean |>
   pivot_longer(cols = -country, names_to = "year", values_to = "gdp_per_capita") |>
   mutate(year = as.integer(year))
 ```
-
-### 
 
 ```{r join_datasets_country_year}
 data_clean <- inner_join(tfr_long, gdp_long, by = c("country", "year")) |>
@@ -131,7 +124,7 @@ ggplot(agg_data, aes(x = log(avg_gdp), y = log(avg_tfr))) +
 
 This transformation reveals a stronger, more consistent downward trend, suggesting a potential linear relationship on the log scale.
 
-To further understand how this relationship has changed over time, we visualized the data as an animated graphic showing how fertility and GDP move year by year. As seen in the animation, countries’ positions shift notably: while the early years show a scattered and less defined relationship, over time the entire cloud of points gradually shifts downward. This movement indicates a collective decline in fertility rates globally, with wealthier nations clustering even lower on the fertility axis. The downward slope becomes more dramatic in more recent years, further emphasizing the strengthening inverse relationship between economic development and fertility.
+To further understand how this relationship has changed over time, we visualized the data as an animated graphic showing how fertility and GDP move year by year. As seen in the animation, countries’ positions shift notably: while the early years show a scattered and less defined relationship, over time the points gradually shift downward into a linear shape. This movement indicates a collective decline in fertility rates globally, with wealthier nations going lower on the fertility axis. The downward slope becomes more dramatic in more recent years, emphasizing the strengthening inverse relationship between economic development and fertility.
 
 ```{r}
 ggplot(data_clean, aes(x = log(gdp_per_capita), y = log(tfr))) +
@@ -155,9 +148,9 @@ broom::tidy(ln_model) |>
   kable()
 ```
 
-The intercept suggests that if the average GDP per capita were \$1, the predicted fertility rate would be approximately 54 children per woman. This is not meaningful within a real-world context but useful for model interpretation.
+The intercept suggests that if the average GDP per capita were \$1, the predicted fertility rate would be approximately 54 children per woman. 
 
-The slope of the regression model indicates that for every doubling (2-fold increase) in average GDP per capita, the predicted average total fertility rate decreases by a factor of 0.805. This suggests a negative relationship between economic prosperity and fertility: as countries become wealthier on average, they tend to have lower fertility rates. This aligns with our hypothesis.
+The slope of the regression model indicates that for every doubling in average GDP per capita, the predicted average total fertility rate decreases by a factor of 0.805. This suggests a negative relationship between economic prosperity and fertility: as countries become wealthier on average, they tend to have lower fertility rates. This aligns with our hypothesis.
 
 ## Model Fit
 
@@ -237,10 +230,10 @@ ggplot(r2_df, aes(x = r2)) +
   theme_minimal(base_size = 13)
 ```
 
-The results of the 10-fold cross-validation show that the model's $R^2$ values range from approximately 0.369 to 0.910, with an average $R^2$ of about 0.594. This is consistent with the $R^2$ from the full model (0.588), suggesting that the model generalizes well to unseen data and is not overfitting. There is some variation in $R^2$ across folds—likely due to the small sample size and potential variability in GDP and fertility values between countries. Overall, this goes to show that GDP per capita is a decent predictor of average total fertility rate, but there is still room for improvement in the model.
+The results of the 10-fold cross-validation show that the model's $R^2$ values range from approximately 0.369 to 0.910, with an average $R^2$ of about 0.594. This is consistent with the $R^2$ from the full model (0.588), suggesting that the model generalizes well to unseen data and is not overfitting. There is some variation in $R^2$ across folds, likely due to the small sample size and potential variability in GDP and fertility values between countries. Overall, this goes to show that GDP per capita is a decent predictor of average total fertility rate, but there is still room for improvement in the model.
 
 ## Conclusion
 
-This analysis provides compelling evidence for a negative association between economic prosperity and fertility rates. As GDP per capita increases, fertility rates tend to decline. The regression results are consistent across visualizations and validated by cross-validation, suggesting that GDP per capita is a meaningful, though not exclusive, predictor of fertility behavior across nations.
+This analysis provides compelling evidence for a negative association between economic prosperity and fertility rates. As GDP per capita increases, fertility rates tend to decline. The regression results are consistent across visualizations and validated by cross-validation, suggesting that GDP per capita is a meaningful, though not exclusive, predictor of fertility behavior across nations. These findings support existing global demographic theories.
 
-Future research could explore additional factors such as education levels, urbanization rates, healthcare access, or cultural variables to improve explanatory power. Nonetheless, our findings support existing global demographic theories and provide a statistically grounded visualization of the economic-fertility connection.
+Future research could explore additional factors such as education levels, healthcare access, or cultural variables to improve explanation. 
